@@ -3,68 +3,67 @@ import { useState, useRef, useCallback } from 'react'
 
 export type VoiceState = 'idle' | 'recording' | 'processing'
 
+function mimeToExt(mimeType: string): string {
+  if (mimeType.includes('mp4'))  return 'mp4'
+  if (mimeType.includes('ogg'))  return 'ogg'
+  if (mimeType.includes('mpeg')) return 'mp3'
+  if (mimeType.includes('wav'))  return 'wav'
+  return 'webm'
+}
+
 export function useVoice(fieldContext: string, onResult: (text: string) => void) {
   const [state, setState] = useState<VoiceState>('idle')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
-  const finalTranscript = useRef('')
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef  = useRef<MediaStream | null>(null)
+  const chunksRef  = useRef<Blob[]>([])
 
   const stop = useCallback(() => {
-    recognitionRef.current?.stop()
+    if (recorderRef.current?.state !== 'inactive') recorderRef.current?.stop()
+    streamRef.current?.getTracks().forEach(t => t.stop())
   }, [])
 
-  const start = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any
-    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition
+  const start = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
 
-    if (!SpeechRecognition) {
-      alert('Voice input needs Chrome, Edge, or Safari. Try one of those.')
-      return
-    }
+      const recorder = new MediaRecorder(stream)
+      recorderRef.current = recorder
 
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = 'en-US'
-    finalTranscript.current = ''
-    recognitionRef.current = recognition
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (e: any) => {
-      let final = ''
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript + ' '
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
       }
-      finalTranscript.current = final
-    }
 
-    recognition.onend = async () => {
-      const raw = finalTranscript.current.trim()
-      if (!raw) { setState('idle'); return }
+      recorder.onstop = async () => {
+        streamRef.current?.getTracks().forEach(t => t.stop())
+        const mimeType = recorder.mimeType || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        if (blob.size === 0) { setState('idle'); return }
 
-      setState('processing')
-      try {
-        const res = await fetch('/api/voice-cleanup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw, fieldContext }),
-        })
-        const data = await res.json()
-        onResult(data.cleaned || raw)
-      } catch {
-        onResult(raw)
-      } finally {
-        setState('idle')
+        setState('processing')
+        try {
+          const ext = mimeToExt(mimeType)
+          const formData = new FormData()
+          formData.append('audio', blob, `recording.${ext}`)
+          formData.append('fieldContext', fieldContext)
+
+          const res = await fetch('/api/voice-cleanup', { method: 'POST', body: formData })
+          const data = await res.json()
+          onResult(data.cleaned || '')
+        } catch {
+          // silent fail — user can try again
+        } finally {
+          setState('idle')
+        }
       }
-    }
 
-    recognition.onerror = () => {
+      recorder.start()
+      setState('recording')
+    } catch {
+      alert('Microphone access denied. Please allow it in your browser settings and try again.')
       setState('idle')
     }
-
-    recognition.start()
-    setState('recording')
   }, [fieldContext, onResult])
 
   return { state, start, stop }
