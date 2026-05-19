@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { VoiceButton } from '@/components/VoiceButton'
 
 // ── Types ────────────────────────────────────────────────
 interface FormData {
@@ -258,6 +259,11 @@ export default function IntakeForm() {
             <input className="q-input" type="text" placeholder="Type your answer…"
               value={form.q1_intro}
               onChange={e => set('q1_intro')(e.target.value)} autoFocus />
+            <VoiceButton
+              fieldContext="What do you do? (dinner party version, not LinkedIn)"
+              hint="Rather just say it out loud? Hit the mic."
+              onResult={text => set('q1_intro')(text)}
+            />
           </>}
 
           {/* ── 3: WORLD ── */}
@@ -287,6 +293,11 @@ export default function IntakeForm() {
               placeholder="Morning meetings, school run, client calls, late nights… whatever it is."
               value={form.q3_tuesday}
               onChange={e => set('q3_tuesday')(e.target.value)} />
+            <VoiceButton
+              fieldContext="Walk me through a typical Tuesday — what does your day look like from morning to evening?"
+              hint="Walk me through it like you're telling a friend. Just hit the mic."
+              onResult={text => set('q3_tuesday')(text)}
+            />
           </>}
 
           {/* ── 5: AI REACTION ── */}
@@ -375,6 +386,11 @@ export default function IntakeForm() {
               placeholder="Could be a task, a type of meeting, a recurring situation…"
               value={form.q8_dread}
               onChange={e => set('q8_dread')(e.target.value)} />
+            <VoiceButton
+              fieldContext="What part of your week do you dread most? The thing you keep putting off or that drains you."
+              hint="Some things are easier to say than write. Use your voice."
+              onResult={text => set('q8_dread')(text)}
+            />
           </>}
 
           {/* ── 10: 2 HOURS ── */}
@@ -386,6 +402,11 @@ export default function IntakeForm() {
               placeholder="Sleep more, think better, spend time with people, build something…"
               value={form.q9_two_hours}
               onChange={e => set('q9_two_hours')(e.target.value)} />
+            <VoiceButton
+              fieldContext="If you could reclaim 2 hours a day, what would you genuinely want to do with them?"
+              hint="Close your eyes for a second. Picture it. Then just tell me."
+              onResult={text => set('q9_two_hours')(text)}
+            />
           </>}
 
           {/* ── 11: OUTCOMES ── */}
@@ -420,6 +441,11 @@ export default function IntakeForm() {
               placeholder="Or just write 'not really' — that's valid too."
               value={form.q11_worries}
               onChange={e => set('q11_worries')(e.target.value)} />
+            <VoiceButton
+              fieldContext="Is there anything you're worried about when it comes to AI — your job, privacy, your industry?"
+              hint="No judgment here. Unfiltered is fine. Just speak."
+              onResult={text => set('q11_worries')(text)}
+            />
           </>}
 
           {/* ── 13: WILDCARD + SUBMIT ── */}
@@ -434,6 +460,11 @@ export default function IntakeForm() {
               placeholder="Anything at all…"
               value={form.q12_wildcard}
               onChange={e => set('q12_wildcard')(e.target.value)} />
+            <VoiceButton
+              fieldContext="What's one thing you want me to know about you that a form like this probably won't capture?"
+              hint="Just talk to me. Say whatever comes to mind — I'll catch every word."
+              onResult={text => set('q12_wildcard')(text)}
+            />
             {submitError && <p className="error-text">{submitError}</p>}
           </>}
 

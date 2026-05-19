@@ -335,6 +335,108 @@ body {
   margin-bottom: 20px;
 }
 
+/* ── VOICE INPUT ── */
+.voice-wrap {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-hint {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12px;
+  color: var(--mid);
+  letter-spacing: .01em;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.voice-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px 9px 13px;
+  background: var(--warm);
+  border: 1.5px solid var(--light);
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.voice-btn:hover {
+  background: var(--light);
+  border-color: var(--mid);
+  color: var(--ink);
+}
+
+.voice-btn:active { transform: scale(0.97); }
+
+.voice-btn--recording {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: var(--accent);
+  animation: voice-glow 1.6s ease-in-out infinite;
+}
+
+.voice-btn--processing {
+  background: var(--warm);
+  border-color: var(--light);
+  color: var(--mid);
+  cursor: default;
+}
+
+.voice-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.voice-btn-label {
+  line-height: 1;
+}
+
+/* Animated ring when recording */
+.voice-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 100px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: voice-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes voice-ring {
+  0%   { opacity: .5; inset: -2px; }
+  100% { opacity: 0;  inset: -10px; }
+}
+
+@keyframes voice-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 69, 28, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(196, 69, 28, .12); }
+}
+
+/* Spinning loader */
+.voice-spinner {
+  animation: spin .8s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── RESPONSIVE ── */
 @media (min-width: 640px) {
   .slide { padding: 60px 40px 120px; max-width: 600px; margin: 0 auto; }
