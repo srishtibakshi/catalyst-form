@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { VoiceButton } from '@/components/VoiceButton'
+
+gsap.registerPlugin(useGSAP)
 
 // ── Types ────────────────────────────────────────────────
 interface FormData {
@@ -53,6 +57,7 @@ export default function IntakeForm() {
   const [done, setDone]               = useState(false)
   const [cohort, setCohort]           = useState('')
   const sliding                       = useRef(false)
+  const slideRef                      = useRef<HTMLDivElement>(null)
 
   const progress = done ? 100 : slide === 0 ? 0 : Math.round((slide / 12) * 100)
   const stepLabel = done ? 'Done' : slide === 0 ? '' : `${slide} of 12`
@@ -94,6 +99,23 @@ export default function IntakeForm() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [slide, done, next])
+
+  // Stagger the content of each slide in as it becomes active. Reduced-motion safe.
+  useGSAP(() => {
+    const el = slideRef.current
+    if (!el) return
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.from(Array.from(el.children), {
+        y: 20,
+        opacity: 0,
+        duration: 0.55,
+        stagger: 0.07,
+        ease: 'power3.out',
+        delay: 0.14,
+      })
+    })
+  }, { dependencies: [slide, done], scope: slideRef, revertOnUpdate: true })
 
   const set = (key: keyof FormData) =>
     (val: string | number | string[] | null) =>
@@ -165,11 +187,11 @@ export default function IntakeForm() {
       <>
         <div className="progress"><div className="progress-fill" style={{ width: '100%' }} /></div>
         <div className="logo-strip">
-          <div className="logo">Catalyst<span> AI</span></div>
+          <div className="logo">Philanthropel<span>Catalyst AI</span></div>
           <span className="step-label">Done</span>
         </div>
         <div className="slide-container">
-          <div className="slide active" style={{ justifyContent: 'center' }}>
+          <div className="slide active" ref={slideRef} style={{ justifyContent: 'center' }}>
             <div className="ty-mark">✓</div>
             <h1 className="headline-xl">
               {name ? `Okay, ${name}.\n` : ''}We&apos;ve got<br /><em>everything.</em>
@@ -198,13 +220,13 @@ export default function IntakeForm() {
 
       {/* Logo strip */}
       <div className="logo-strip">
-        <div className="logo">Catalyst<span> AI</span></div>
+        <div className="logo">Philanthropel<span>Catalyst AI</span></div>
         <span className="step-label">{stepLabel}</span>
       </div>
 
       {/* Slide */}
       <div className="slide-container">
-        <div className={`slide ${slideState}`}>
+        <div className={`slide ${slideState}`} ref={slideRef}>
 
           {/* ── 0: INTRO ── */}
           {slide === 0 && <>
