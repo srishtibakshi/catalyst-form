@@ -2,10 +2,21 @@ import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
 export async function POST(req: NextRequest) {
+  /* Clients are created per request, not at module load: the Groq SDK throws
+     on construction without a key, and Next evaluates route modules during
+     `next build`, so a module-level client failed every build that lacked
+     the key (local builds, and Vercel previews, which only production has
+     keys for). */
+  const groqKey = process.env.GROQ_API_KEY
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!groqKey || !anthropicKey) {
+    console.error('voice-cleanup: GROQ_API_KEY or ANTHROPIC_API_KEY is not set')
+    return Response.json({ cleaned: '' }, { status: 503 })
+  }
+  const groq = new Groq({ apiKey: groqKey })
+  const anthropic = new Anthropic({ apiKey: anthropicKey })
+
   const formData = await req.formData()
   const audio = formData.get('audio') as File | null
   const fieldContext = (formData.get('fieldContext') as string) || ''
