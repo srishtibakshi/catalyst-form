@@ -323,3 +323,34 @@ body::after {
 @media (min-width: 640px) {
   .slide { max-height: min(760px, 100%); }
 }
+
+/* ── FELLOWSHIP ADDITIONS ──
+   Choices render as real <button>s there (keyboard and screen-reader
+   reachable), so they need the browser's button styling removed to match
+   the div-based choices on the Catalyst intake. */
+button.choice { width: 100%; text-align: left; font: inherit; color: inherit; }
+button.choice:focus-visible,
+.scale-btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+.optional-tag {
+  display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 99px;
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  color: var(--sage); border: 1px solid var(--line); vertical-align: middle;
+}
+
+.consent {
+  display: flex; gap: 12px; align-items: flex-start; margin-top: 22px;
+  padding: 14px 15px; border: 1px solid var(--line); border-radius: 15px;
+  background: var(--glass); font-size: 14px; line-height: 1.5; color: var(--ink); cursor: pointer;
+}
+.consent input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--teal-bright); flex-shrink: 0; }
+.consent a { color: var(--mint); }
+
+/* .error-text asks for its own line (flex-basis 100%, order -1), but the
+   footer never wrapped, so an error squeezed the buttons into a sliver
+   instead. Latent on the Catalyst intake, where errors are rare; constant on
+   the Fellowship form, which checks required answers on every Next. */
+.card-foot { flex-wrap: wrap; }
+
+/* Honeypot: off-screen rather than display:none, which some bots skip. */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
