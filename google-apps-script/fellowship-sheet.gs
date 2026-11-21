@@ -11,6 +11,12 @@
  *   Project Settings → Script properties → FELLOWSHIP_SECRET
  * It must match FELLOWSHIP_SHEET_SECRET in the form's environment.
  *
+ * It also sends the team's email alerts. A request with action "notify"
+ * carries { secret, action, subject, body } and is mailed, as plain text,
+ * from the account that owns this script to the comma-separated addresses
+ * in the NOTIFY_EMAILS script property (or to the owner if that is unset).
+ * Alerts come from both the Fellowship form and the Catalyst intake form.
+ *
  * Setup steps: see FELLOWSHIP-SETUP.md in the catalyst-form repository.
  */
 
@@ -23,6 +29,9 @@ function doPost(e) {
 
     if (!expected || data.secret !== expected) {
       return json_({ ok: false, error: 'unauthorised' });
+    }
+    if (data.action === 'notify') {
+      return json_(notify_(data));
     }
     if (!Array.isArray(data.headers) || !Array.isArray(data.row) || data.headers.length !== data.row.length) {
       return json_({ ok: false, error: 'malformed row' });
@@ -49,6 +58,24 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }
+}
+
+/** Email an alert to the team. Plain text only, so applicant answers cannot inject markup. */
+function notify_(data) {
+  if (typeof data.subject !== 'string' || typeof data.body !== 'string' || !data.subject) {
+    return { ok: false, error: 'malformed alert' };
+  }
+  var configured = PropertiesService.getScriptProperties().getProperty('NOTIFY_EMAILS');
+  var to = configured || Session.getEffectiveUser().getEmail();
+  var sheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+
+  MailApp.sendEmail({
+    to: to,
+    subject: data.subject.replace(/[\r\n]+/g, ' ').slice(0, 200),
+    body: data.body + '\n\nReview sheet: ' + sheetUrl,
+    name: 'Philanthropel forms',
+  });
+  return { ok: true };
 }
 
 function json_(obj) {
