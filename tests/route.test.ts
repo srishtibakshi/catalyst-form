@@ -14,6 +14,12 @@ vi.mock('@/lib/sheets', async importOriginal => ({
   appendSheetRow: (...args: unknown[]) => appendSheetRow(...args),
 }))
 
+const notifyTeam = vi.fn()
+vi.mock('@/lib/notify', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/notify')>()),
+  notifyTeam: (...args: unknown[]) => notifyTeam(...args),
+}))
+
 // vi.mock calls above are hoisted, so this import already sees the mocks.
 
 function post(body: unknown) {
@@ -30,6 +36,7 @@ beforeEach(() => {
   vi.stubEnv('FELLOWSHIP_SHEET_SECRET', 's3cret')
   insert.mockResolvedValue({ error: null })
   appendSheetRow.mockResolvedValue(undefined)
+  notifyTeam.mockResolvedValue(undefined)
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
@@ -102,5 +109,19 @@ describe('POST /api/fellowship', () => {
     const res = await post(validApplication())
     expect(res.status).toBe(200)
     expect(appendSheetRow).not.toHaveBeenCalled()
+  })
+
+  it('emails the team once the application is saved', async () => {
+    await post(validApplication())
+    expect(notifyTeam).toHaveBeenCalledOnce()
+    expect(notifyTeam.mock.calls[0][0].subject).toBe('New Fellowship application: Amina Yusuf')
+  })
+
+  it('sends no alert for a bot or an application that could not be saved', async () => {
+    await post({ ...validApplication(), company_website: 'https://spam.example' })
+    appendSheetRow.mockRejectedValue(new Error('sheet down'))
+    insert.mockResolvedValue({ error: { message: 'db down' } })
+    await post(validApplication())
+    expect(notifyTeam).not.toHaveBeenCalled()
   })
 })

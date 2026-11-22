@@ -71,6 +71,34 @@ for the reference: the log line says which store failed and why.
 
 ---
 
+## 5. Email alerts for new submissions
+
+Both forms (Fellowship and Catalyst intake) email the team when a submission
+is saved. The Apps Script from step 1 sends them, from the Google account
+that owns the script, so there is no mail service to set up.
+
+To turn alerts on after updating the script:
+
+1. Paste the current `google-apps-script/fellowship-sheet.gs` into the
+   script editor (Extensions → Apps Script on the review sheet) and save.
+2. Alerts go to anmol@philanthropel.com and srishti@philanthropel.com
+   (`DEFAULT_RECIPIENTS` in the script). To change that without editing
+   code: Project Settings → Script properties → add `NOTIFY_EMAILS`, a
+   comma-separated list, which replaces the default.
+3. Deploy → Manage deployments → edit (pencil) the existing web app →
+   Version: **New version** → Deploy. Editing the existing deployment keeps
+   the same `/exec` URL, so nothing changes in Vercel. Creating a *new*
+   deployment would give a new URL instead.
+4. Google asks to authorise the new "send email as you" permission.
+   Approve it. Until it is approved, alerts fail quietly (submissions still
+   save) and Vercel logs show `[alert] Not sent`.
+5. Run in the editor once, or submit a test application, and check the inbox.
+
+The Catalyst intake form uses the same `FELLOWSHIP_SHEET_WEBHOOK_URL` and
+`FELLOWSHIP_SHEET_SECRET` values, so no new Vercel variables are needed.
+Gmail allows about 100 alert emails a day from a personal account and 1,500
+from Google Workspace.
+
 ## Changing the questions
 
 Everything about a question lives in `lib/fellowship.ts`: its options, whether it

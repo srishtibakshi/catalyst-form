@@ -8,6 +8,7 @@ import {
   type SubmissionMeta,
 } from '@/lib/fellowship'
 import { appendSheetRow, sheetConfigFromEnv } from '@/lib/sheets'
+import { fellowshipAlert, notifyTeam } from '@/lib/notify'
 
 /* Hidden field the form renders off-screen. People never see it, so they
    never fill it; form-filling bots fill every field they find. */
@@ -85,6 +86,10 @@ export async function POST(req: NextRequest) {
   if (sheet.status === 'rejected' && db.status === 'rejected') {
     return NextResponse.json({ error: SAVE_FAILED }, { status: 500 })
   }
+
+  /* Awaited, because a serverless function may be frozen once it responds.
+     notifyTeam never throws, so a failed alert cannot fail the applicant. */
+  await notifyTeam(fellowshipAlert(result.value, meta))
 
   return NextResponse.json({ success: true, id: meta.id })
 }

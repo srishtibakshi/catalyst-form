@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { deriveCohort } from '@/lib/cohort'
+import { intakeAlert, notifyTeam } from '@/lib/notify'
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest) {
       console.error('Supabase insert error:', error)
       return NextResponse.json({ error: 'Could not save response.' }, { status: 500 })
     }
+
+    // Never throws: a failed alert is logged and the response still succeeds.
+    await notifyTeam(intakeAlert({
+      id: data.id,
+      name: record.respondent_name,
+      email: record.respondent_email,
+      cohort: data.cohort_tag,
+    }))
 
     return NextResponse.json({ success: true, id: data.id, cohort: data.cohort_tag })
   } catch (err) {
