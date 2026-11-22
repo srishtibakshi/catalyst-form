@@ -17,6 +17,9 @@
  * the comma-separated addresses in the NOTIFY_EMAILS script property if set.
  * Alerts come from both the Fellowship form and the Catalyst intake form.
  *
+ * A request with action "confirm" carries { secret, action, to, subject, body }
+ * and is mailed to that one applicant, confirming their application arrived.
+ *
  * Setup steps: see FELLOWSHIP-SETUP.md in the catalyst-form repository.
  */
 
@@ -35,6 +38,9 @@ function doPost(e) {
     }
     if (data.action === 'notify') {
       return json_(notify_(data));
+    }
+    if (data.action === 'confirm') {
+      return json_(confirm_(data));
     }
     if (!Array.isArray(data.headers) || !Array.isArray(data.row) || data.headers.length !== data.row.length) {
       return json_({ ok: false, error: 'malformed row' });
@@ -77,6 +83,25 @@ function notify_(data) {
     subject: data.subject.replace(/[\r\n]+/g, ' ').slice(0, 200),
     body: data.body + '\n\nReview sheet: ' + sheetUrl,
     name: 'Philanthropel forms',
+  });
+  return { ok: true };
+}
+
+/** Email one applicant to confirm their application arrived. One address only, plain text. */
+function confirm_(data) {
+  var to = typeof data.to === 'string' ? data.to.trim() : '';
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to)) {
+    return { ok: false, error: 'malformed recipient' };
+  }
+  if (typeof data.subject !== 'string' || typeof data.body !== 'string' || !data.subject) {
+    return { ok: false, error: 'malformed email' };
+  }
+
+  MailApp.sendEmail({
+    to: to,
+    subject: data.subject.replace(/[\r\n]+/g, ' ').slice(0, 200),
+    body: data.body,
+    name: 'Philanthropel',
   });
   return { ok: true };
 }
