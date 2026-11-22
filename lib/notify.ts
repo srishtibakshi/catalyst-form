@@ -37,6 +37,22 @@ function lines(fields: ReadonlyArray<readonly [string, string]>): string {
     .join('\n')
 }
 
+const LINKEDIN_PROFILE = /linkedin\.com\/in\/[A-Za-z0-9\-_%]+/i
+
+/** The applicant's LinkedIn profile, cleaned up from whatever they typed, or null. */
+export function linkedinProfile(text: string): string | null {
+  const match = text.match(LINKEDIN_PROFILE)
+  return match ? `https://www.${match[0]}` : null
+}
+
+/** A LinkedIn line for the team: the profile, or a people search when none was given. */
+function linkedinLine(a: FellowshipApplication): string {
+  const profile = linkedinProfile(a.link)
+  if (profile) return profile
+  const search = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(a.name.trim())}`
+  return `not provided. Search: ${search}`
+}
+
 export function fellowshipAlert(a: FellowshipApplication, m: SubmissionMeta): Alert {
   return {
     subject: `New Fellowship application: ${subjectPart(a.name)}`,
@@ -46,6 +62,7 @@ export function fellowshipAlert(a: FellowshipApplication, m: SubmissionMeta): Al
       lines([
         ['Name', a.name.trim()],
         ['Email', a.email.trim()],
+        ['LinkedIn', linkedinLine(a)],
         ['Location', a.location],
         ['Link', a.link],
         ['Stage', a.stage],

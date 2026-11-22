@@ -7,6 +7,7 @@ import {
   applicantConfirmation,
   sendApplicantEmail,
   confirmApplicant,
+  linkedinProfile,
 } from '@/lib/notify'
 import { validApplication } from './fixtures'
 
@@ -41,6 +42,28 @@ describe('fellowshipAlert', () => {
   it('caps a very long name in the subject', () => {
     const alert = fellowshipAlert(validApplication({ name: 'A'.repeat(500) }), meta)
     expect(alert.subject.length).toBeLessThanOrEqual(150)
+  })
+})
+
+describe('LinkedIn in the Fellowship alert', () => {
+  it('pulls a clean profile link out of a messy link field', () => {
+    const link = 'lhttps://www.linkedin.com/in/nandini-mane-7983b02b3/     Behance- https://www.behance.net/x'
+    expect(linkedinProfile(link)).toBe('https://www.linkedin.com/in/nandini-mane-7983b02b3')
+    expect(linkedinProfile('www.linkedin.com/in/vishruti-bhandari-26042a294')).toBe(
+      'https://www.linkedin.com/in/vishruti-bhandari-26042a294',
+    )
+  })
+
+  it('shows the profile in the alert', () => {
+    const alert = fellowshipAlert(validApplication({ link: 'linkedin.com/in/amina-yusuf' }), meta)
+    expect(alert.body).toContain('LinkedIn: https://www.linkedin.com/in/amina-yusuf')
+  })
+
+  it('offers a name search when no profile was given', () => {
+    const alert = fellowshipAlert(validApplication({ name: 'Amina Yusuf', link: 'https://drive.google.com/x' }), meta)
+    expect(alert.body).toContain(
+      'LinkedIn: not provided. Search: https://www.linkedin.com/search/results/people/?keywords=Amina%20Yusuf',
+    )
   })
 })
 
