@@ -15,9 +15,11 @@ vi.mock('@/lib/sheets', async importOriginal => ({
 }))
 
 const notifyTeam = vi.fn()
+const confirmApplicant = vi.fn()
 vi.mock('@/lib/notify', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/notify')>()),
   notifyTeam: (...args: unknown[]) => notifyTeam(...args),
+  confirmApplicant: (...args: unknown[]) => confirmApplicant(...args),
 }))
 
 // vi.mock calls above are hoisted, so this import already sees the mocks.
@@ -37,6 +39,7 @@ beforeEach(() => {
   insert.mockResolvedValue({ error: null })
   appendSheetRow.mockResolvedValue(undefined)
   notifyTeam.mockResolvedValue(undefined)
+  confirmApplicant.mockResolvedValue(undefined)
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
@@ -123,5 +126,16 @@ describe('POST /api/fellowship', () => {
     insert.mockResolvedValue({ error: { message: 'db down' } })
     await post(validApplication())
     expect(notifyTeam).not.toHaveBeenCalled()
+    expect(confirmApplicant).not.toHaveBeenCalled()
+  })
+
+  it('emails the applicant a confirmation with their reference', async () => {
+    const res = await post(validApplication())
+    const { id } = await res.json()
+    expect(confirmApplicant).toHaveBeenCalledOnce()
+    const email = confirmApplicant.mock.calls[0][0]
+    expect(email.to).toBe('amina@example.org')
+    expect(email.body).toContain('Hi Amina,')
+    expect(email.body).toContain(id)
   })
 })

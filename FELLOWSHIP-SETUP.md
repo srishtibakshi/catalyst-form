@@ -77,6 +77,12 @@ Both forms (Fellowship and Catalyst intake) email the team when a submission
 is saved. The Apps Script from step 1 sends them, from the Google account
 that owns the script, so there is no mail service to set up.
 
+The same script also emails each Fellowship applicant a confirmation, with
+their reference, as soon as their application is saved. It is sent from the
+script owner's account under the name "Philanthropel", so replies go to that
+inbox. A failed confirmation is logged as `[confirmation] Not sent` and never
+fails the application.
+
 To turn alerts on after updating the script:
 
 1. Paste the current `google-apps-script/fellowship-sheet.gs` into the

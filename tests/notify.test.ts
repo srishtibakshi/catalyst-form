@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fellowshipAlert, intakeAlert, sendAlert, notifyTeam } from '@/lib/notify'
+import {
+  fellowshipAlert,
+  intakeAlert,
+  sendAlert,
+  notifyTeam,
+  applicantConfirmation,
+  sendApplicantEmail,
+  confirmApplicant,
+} from '@/lib/notify'
 import { validApplication } from './fixtures'
 
 const config = { webhookUrl: 'https://script.example/exec', secret: 's3cret' }
@@ -62,6 +70,41 @@ describe('sendAlert', () => {
   it('throws when the script answers with HTML instead of JSON', async () => {
     mockFetch(new Response('<html>sign in</html>'))
     await expect(sendAlert(config, { subject: 'S', body: 'B' })).rejects.toThrow(/JSON/)
+  })
+})
+
+describe('applicantConfirmation', () => {
+  it('greets the applicant by first name and gives their reference', () => {
+    const email = applicantConfirmation(validApplication({ name: 'Amina Yusuf', email: 'amina@example.org' }), meta)
+    expect(email.to).toBe('amina@example.org')
+    expect(email.subject).toBe("We've received your Philanthropel Fellowship application")
+    expect(email.body.startsWith('Hi Amina,')).toBe(true)
+    expect(email.body).toContain('ref-123')
+  })
+
+  it('keeps a hostile name to one line', () => {
+    const email = applicantConfirmation(validApplication({ name: 'Eve\r\nBcc: x@evil.example' }), meta)
+    expect(email.body.split('\n')[0]).toBe('Hi Eve,')
+  })
+})
+
+describe('sendApplicantEmail', () => {
+  it('posts the confirm action with the recipient', async () => {
+    const fetchFn = mockFetch(Response.json({ ok: true }))
+    await sendApplicantEmail(config, { to: 'a@example.org', subject: 'S', body: 'B' })
+    const sent = JSON.parse(fetchFn.mock.calls[0][1].body)
+    expect(sent).toEqual({ secret: 's3cret', action: 'confirm', to: 'a@example.org', subject: 'S', body: 'B' })
+  })
+})
+
+describe('confirmApplicant', () => {
+  it('never throws, and logs, when sending fails', async () => {
+    vi.stubEnv('FELLOWSHIP_SHEET_WEBHOOK_URL', config.webhookUrl)
+    vi.stubEnv('FELLOWSHIP_SHEET_SECRET', config.secret)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(confirmApplicant({ to: 'a@example.org', subject: 'S', body: 'B' })).resolves.toBeUndefined()
+    expect(log).toHaveBeenCalled()
   })
 })
 

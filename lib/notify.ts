@@ -85,29 +85,81 @@ export function intakeAlert(r: IntakeSummary): Alert {
   }
 }
 
+/** The email an applicant gets the moment their application is saved. */
+export interface ApplicantEmail extends Alert {
+  to: string
+}
+
+export function applicantConfirmation(a: FellowshipApplication, m: SubmissionMeta): ApplicantEmail {
+  const firstName = subjectPart(a.name).split(' ')[0]
+  return {
+    to: a.email,
+    subject: "We've received your Philanthropel Fellowship application",
+    body: [
+      `Hi ${firstName},`,
+      '',
+      'Thank you for applying to the Philanthropel Fellowship. Your application has reached us safely.',
+      '',
+      "We read every application personally, and we'll be in touch by email once we've reviewed yours.",
+      '',
+      `Your reference: ${m.id}`,
+      '',
+      'If you have any questions in the meantime, just reply to this email.',
+      '',
+      'Warm regards,',
+      'Anmol and Srishti',
+      'Philanthropel',
+    ].join('\n'),
+  }
+}
+
 interface ScriptResponse {
   ok?: boolean
   error?: string
 }
 
-/** Ask the Apps Script to email the team. Throws with a reason on failure. */
-export async function sendAlert(config: SheetConfig, alert: Alert): Promise<void> {
+/** POST an action to the Apps Script. Throws with a reason on failure. */
+async function postToScript(config: SheetConfig, payload: Record<string, string>): Promise<void> {
   const res = await fetch(config.webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: config.secret, action: 'notify', ...alert }),
+    body: JSON.stringify({ secret: config.secret, ...payload }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   })
 
-  if (!res.ok) throw new Error(`Alert webhook returned HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`Email webhook returned HTTP ${res.status}`)
 
   let body: ScriptResponse
   try {
     body = (await res.json()) as ScriptResponse
   } catch {
-    throw new Error('Alert webhook did not return JSON — check the Apps Script deployment access')
+    throw new Error('Email webhook did not return JSON — check the Apps Script deployment access')
   }
-  if (!body.ok) throw new Error(`Alert webhook refused: ${body.error ?? 'no reason given'}`)
+  if (!body.ok) throw new Error(`Email webhook refused: ${body.error ?? 'no reason given'}`)
+}
+
+/** Ask the Apps Script to email the team. Throws with a reason on failure. */
+export async function sendAlert(config: SheetConfig, alert: Alert): Promise<void> {
+  await postToScript(config, { action: 'notify', ...alert })
+}
+
+/** Ask the Apps Script to email one applicant. Throws with a reason on failure. */
+export async function sendApplicantEmail(config: SheetConfig, email: ApplicantEmail): Promise<void> {
+  await postToScript(config, { action: 'confirm', ...email })
+}
+
+/** Confirm receipt to the applicant if configured. Never throws: failures are logged. */
+export async function confirmApplicant(email: ApplicantEmail): Promise<void> {
+  const config = sheetConfigFromEnv()
+  if (!config) {
+    console.error('[confirmation] Not sent, webhook is not configured')
+    return
+  }
+  try {
+    await sendApplicantEmail(config, email)
+  } catch (err) {
+    console.error('[confirmation] Not sent', err)
+  }
 }
 
 /** Send an alert if configured. Never throws: failures are logged. */
