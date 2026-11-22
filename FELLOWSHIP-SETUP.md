@@ -81,9 +81,10 @@ To turn alerts on after updating the script:
 
 1. Paste the current `google-apps-script/fellowship-sheet.gs` into the
    script editor (Extensions → Apps Script on the review sheet) and save.
-2. Optional: Project Settings → Script properties → add `NOTIFY_EMAILS`,
-   a comma-separated list of who should get alerts. If it is not set,
-   alerts go to the script owner.
+2. Alerts go to anmol@philanthropel.com and srishti@philanthropel.com
+   (`DEFAULT_RECIPIENTS` in the script). To change that without editing
+   code: Project Settings → Script properties → add `NOTIFY_EMAILS`, a
+   comma-separated list, which replaces the default.
 3. Deploy → Manage deployments → edit (pencil) the existing web app →
    Version: **New version** → Deploy. Editing the existing deployment keeps
    the same `/exec` URL, so nothing changes in Vercel. Creating a *new*

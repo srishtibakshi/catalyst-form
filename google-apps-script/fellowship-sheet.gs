@@ -13,14 +13,17 @@
  *
  * It also sends the team's email alerts. A request with action "notify"
  * carries { secret, action, subject, body } and is mailed, as plain text,
- * from the account that owns this script to the comma-separated addresses
- * in the NOTIFY_EMAILS script property (or to the owner if that is unset).
+ * from the account that owns this script to DEFAULT_RECIPIENTS below, or to
+ * the comma-separated addresses in the NOTIFY_EMAILS script property if set.
  * Alerts come from both the Fellowship form and the Catalyst intake form.
  *
  * Setup steps: see FELLOWSHIP-SETUP.md in the catalyst-form repository.
  */
 
 var SHEET_NAME = 'Applications';
+
+// Who receives alerts unless the NOTIFY_EMAILS script property overrides it.
+var DEFAULT_RECIPIENTS = 'anmol@philanthropel.com, srishti@philanthropel.com';
 
 function doPost(e) {
   try {
@@ -66,7 +69,7 @@ function notify_(data) {
     return { ok: false, error: 'malformed alert' };
   }
   var configured = PropertiesService.getScriptProperties().getProperty('NOTIFY_EMAILS');
-  var to = configured || Session.getEffectiveUser().getEmail();
+  var to = configured || DEFAULT_RECIPIENTS;
   var sheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
 
   MailApp.sendEmail({
