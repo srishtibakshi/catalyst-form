@@ -12,7 +12,7 @@
  *
  * Server-only. Never import this from a client component.
  */
-import type { FellowshipApplication, SubmissionMeta } from '@/lib/fellowship'
+import { SPAM_FLAG, type FellowshipApplication, type SubmissionMeta } from '@/lib/fellowship'
 import { sheetConfigFromEnv, type SheetConfig } from '@/lib/sheets'
 
 const TIMEOUT_MS = 10_000
@@ -55,7 +55,7 @@ function linkedinLine(a: FellowshipApplication): string {
 
 export function fellowshipAlert(a: FellowshipApplication, m: SubmissionMeta): Alert {
   return {
-    subject: `New Fellowship application: ${subjectPart(a.name)}`,
+    subject: `${m.flaggedAsSpam ? `[${SPAM_FLAG}] ` : ''}New Fellowship application: ${subjectPart(a.name)}`,
     body: [
       'A new Fellowship application has arrived.',
       '',

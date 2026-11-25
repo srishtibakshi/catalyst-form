@@ -46,13 +46,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'The application could not be read.' }, { status: 400 })
   }
 
-  if (typeof body === 'object' && body !== null && HONEYPOT in body) {
-    const trap = (body as Record<string, unknown>)[HONEYPOT]
-    if (typeof trap === 'string' && trap.trim() !== '') {
-      // Look successful, so the bot learns nothing. Nothing is stored.
-      return NextResponse.json({ success: true })
-    }
-  }
+  /* Browser autofill fills the hidden field too, so a filled trap is a flag
+     for the reviewers, never a reason to drop an application. Dropping them
+     silently once lost a real applicant. */
+  const trap = typeof body === 'object' && body !== null ? (body as Record<string, unknown>)[HONEYPOT] : undefined
+  const flaggedAsSpam = typeof trap === 'string' && trap.trim() !== ''
 
   const result = validateApplication(body)
   if (!result.ok) {
@@ -65,6 +63,10 @@ export async function POST(req: NextRequest) {
   const meta: SubmissionMeta = {
     id: crypto.randomUUID(),
     submittedAt: new Date().toISOString(),
+    flaggedAsSpam,
+  }
+  if (flaggedAsSpam) {
+    console.warn(`[fellowship ${meta.id}] Hidden field was filled; saved and flagged for review`)
   }
 
   /* Written to both, independently. Either one holding the application is

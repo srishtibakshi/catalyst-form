@@ -253,7 +253,11 @@ export function firstSlideWithError(errors: FieldErrors): number | null {
 export interface SubmissionMeta {
   id: string
   submittedAt: string
+  /** The hidden anti-bot field was filled. Kept, not dropped: browser autofill fills it too. */
+  flaggedAsSpam?: boolean
 }
+
+export const SPAM_FLAG = 'Check: possible spam'
 
 const join = (xs: string[]) => xs.join('; ')
 
@@ -263,7 +267,7 @@ export const SHEET_COLUMNS: readonly {
   value: (a: FellowshipApplication, m: SubmissionMeta) => string
 }[] = [
   { header: 'Submitted at',                 value: (_, m) => m.submittedAt },
-  { header: 'Status',                       value: () => 'New' },
+  { header: 'Status',                       value: (_, m) => (m.flaggedAsSpam ? SPAM_FLAG : 'New') },
   { header: 'Name',                         value: a => a.name },
   { header: 'Email',                        value: a => a.email },
   { header: 'Location',                     value: a => a.location },

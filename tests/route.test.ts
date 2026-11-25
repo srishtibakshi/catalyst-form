@@ -78,11 +78,21 @@ describe('POST /api/fellowship', () => {
     expect(appendSheetRow).not.toHaveBeenCalled()
   })
 
-  it('pretends to accept a bot and stores nothing', async () => {
-    const res = await post({ ...validApplication(), company_website: 'https://spam.example' })
+  it('keeps an application whose hidden field was autofilled, flagged for review', async () => {
+    const res = await post({ ...validApplication(), company_website: 'https://my-company.example' })
     expect(res.status).toBe(200)
-    expect(insert).not.toHaveBeenCalled()
-    expect(appendSheetRow).not.toHaveBeenCalled()
+    expect(insert).toHaveBeenCalledOnce()
+    expect(insert.mock.calls[0][0]).not.toHaveProperty('company_website')
+    const row: string[] = appendSheetRow.mock.calls[0][2]
+    expect(row[1]).toBe('Check: possible spam')
+    expect(notifyTeam.mock.calls[0][0].subject).toBe('[Check: possible spam] New Fellowship application: Amina Yusuf')
+    expect(confirmApplicant).toHaveBeenCalledOnce()
+  })
+
+  it('marks an ordinary application as New in the sheet', async () => {
+    await post(validApplication())
+    const row: string[] = appendSheetRow.mock.calls[0][2]
+    expect(row[1]).toBe('New')
   })
 
   it('still accepts the application when only the sheet fails', async () => {
@@ -120,8 +130,7 @@ describe('POST /api/fellowship', () => {
     expect(notifyTeam.mock.calls[0][0].subject).toBe('New Fellowship application: Amina Yusuf')
   })
 
-  it('sends no alert for a bot or an application that could not be saved', async () => {
-    await post({ ...validApplication(), company_website: 'https://spam.example' })
+  it('sends no email for an application that could not be saved', async () => {
     appendSheetRow.mockRejectedValue(new Error('sheet down'))
     insert.mockResolvedValue({ error: { message: 'db down' } })
     await post(validApplication())

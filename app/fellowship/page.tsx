@@ -257,8 +257,11 @@ export default function FellowshipApplicationForm() {
               </div>
               {/* Honeypot — see the API route. Hidden from people and screen readers. */}
               <div className="hp" aria-hidden="true">
-                <label htmlFor="f-company-website">Company website</label>
-                <input id="f-company-website" type="text" tabIndex={-1} autoComplete="off"
+                {/* Worded so autofill has nothing to match: a label like
+                    "Company website" gets filled by browsers and password managers. */}
+                <label htmlFor="f-leave-empty">Leave this empty</label>
+                <input id="f-leave-empty" name="leave-empty" type="text" tabIndex={-1} autoComplete="off"
+                  data-lpignore="true" data-1p-ignore="true" data-form-type="other"
                   value={honeypot} onChange={e => setHoneypot(e.target.value)} />
               </div>
             </>}
