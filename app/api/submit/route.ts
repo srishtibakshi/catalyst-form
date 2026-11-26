@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       name: record.respondent_name,
       email: record.respondent_email,
       cohort: data.cohort_tag,
+      answers: record,
     }))
 
     return NextResponse.json({ success: true, id: data.id, cohort: data.cohort_tag })

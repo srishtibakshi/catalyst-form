@@ -33,13 +33,21 @@ afterEach(() => {
 
 describe('POST /api/submit', () => {
   it('emails the team about a saved intake response', async () => {
-    const res = await post({ respondent_name: ' Sam Lee ', respondent_email: 'Sam@Example.org' })
+    const res = await post({
+      respondent_name: ' Sam Lee ',
+      respondent_email: 'Sam@Example.org',
+      q1_intro: 'I lead a youth charity.',
+      q7_energy: ['Fundraising'],
+    })
     expect(res.status).toBe(200)
     expect(notifyTeam).toHaveBeenCalledOnce()
     const alert = notifyTeam.mock.calls[0][0]
     expect(alert.subject).toBe('New Catalyst intake: Sam Lee')
     expect(alert.body).toContain('sam@example.org')
     expect(alert.body).toContain('row-1')
+    expect(alert.body).toContain('What do you do?\nI lead a youth charity.')
+    expect(alert.body).toContain('Fundraising')
+    expect(alert.reviewSheet).toBeFalsy()
   })
 
   it('sends no alert when the response could not be saved', async () => {

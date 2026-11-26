@@ -21,6 +21,8 @@ const SUBJECT_NAME_MAX = 100
 export interface Alert {
   subject: string
   body: string
+  /** Add the Fellowship review sheet link. Only Fellowship alerts set this. */
+  reviewSheet?: boolean
 }
 
 /** Applicant text in a subject: one line, bounded length. */
@@ -74,7 +76,35 @@ export function fellowshipAlert(a: FellowshipApplication, m: SubmissionMeta): Al
       '',
       'The full application is in the review sheet and in Supabase (fellowship_applications).',
     ].join('\n'),
+    reviewSheet: true,
   }
+}
+
+/** The Catalyst intake questions, in form order, as the respondent saw them. */
+export const INTAKE_QUESTIONS: ReadonlyArray<readonly [string, string]> = [
+  ['q1_intro', 'What do you do?'],
+  ['q2_world', 'Which of these best describes your world right now?'],
+  ['q3_tuesday', 'Walk me through a typical Tuesday.'],
+  ['q4_ai_reaction', 'When you hear "AI", what\'s your honest first reaction?'],
+  ['q5_ai_experience', 'Have you actually tried any AI tools yet?'],
+  ['q6_confidence', 'How confident do you feel talking about AI to someone you respect? (1 to 5)'],
+  ['q7_energy', 'Where does most of your energy go each week?'],
+  ['q8_dread', 'What part of your week do you dread most?'],
+  ['q9_two_hours', 'If you could reclaim 2 hours a day, what would you actually do with them?'],
+  ['q10_outcomes', 'What would make our sessions together feel genuinely worthwhile?'],
+  ['q11_worries', "Is there anything you're worried about when it comes to AI?"],
+  ['q12_wildcard', "What's one thing you want me to know about you that a form like this probably won't capture?"],
+]
+
+/** One answer as plain text: lists joined, blanks marked. */
+function answerText(value: unknown): string {
+  if (Array.isArray(value)) {
+    const items = value.map(v => String(v).trim()).filter(Boolean)
+    return items.length ? items.join(', ') : '(no answer)'
+  }
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  return '(no answer)'
 }
 
 export interface IntakeSummary {
@@ -82,9 +112,14 @@ export interface IntakeSummary {
   name: string
   email: string
   cohort: string | null
+  /** The saved answers, keyed q1_intro … q12_wildcard. */
+  answers: Readonly<Record<string, unknown>>
 }
 
 export function intakeAlert(r: IntakeSummary): Alert {
+  const answers = INTAKE_QUESTIONS.map(
+    ([key, question], i) => `${i + 1}. ${question}\n${answerText(r.answers[key])}`,
+  )
   return {
     subject: `New Catalyst intake: ${subjectPart(r.name)}`,
     body: [
@@ -97,7 +132,11 @@ export function intakeAlert(r: IntakeSummary): Alert {
         ['Reference', r.id],
       ]),
       '',
-      'The full response is in Supabase (intake_responses) and the Catalyst admin.',
+      'Their answers',
+      '',
+      answers.join('\n\n'),
+      '',
+      'The full response is also in Supabase (intake_responses) and the Catalyst admin.',
     ].join('\n'),
   }
 }
@@ -157,12 +196,13 @@ async function postToScript(config: SheetConfig, payload: Record<string, string>
 
 /** Ask the Apps Script to email the team. Throws with a reason on failure. */
 export async function sendAlert(config: SheetConfig, alert: Alert): Promise<void> {
-  await postToScript(config, { action: 'notify', ...alert })
+  const { reviewSheet, ...email } = alert
+  await postToScript(config, { action: 'notify', ...email, ...(reviewSheet ? { reviewSheet: 'yes' } : {}) })
 }
 
 /** Ask the Apps Script to email one applicant. Throws with a reason on failure. */
 export async function sendApplicantEmail(config: SheetConfig, email: ApplicantEmail): Promise<void> {
-  await postToScript(config, { action: 'confirm', ...email })
+  await postToScript(config, { action: 'confirm', to: email.to, subject: email.subject, body: email.body })
 }
 
 /** Confirm receipt to the applicant if configured. Never throws: failures are logged. */
