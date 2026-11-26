@@ -76,12 +76,16 @@ function notify_(data) {
   }
   var configured = PropertiesService.getScriptProperties().getProperty('NOTIFY_EMAILS');
   var to = configured || DEFAULT_RECIPIENTS;
-  var sheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+  // Only Fellowship alerts link the review sheet; Catalyst alerts carry their answers instead.
+  var body = data.body;
+  if (data.reviewSheet === 'yes') {
+    body += '\n\nReview sheet: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl();
+  }
 
   MailApp.sendEmail({
     to: to,
     subject: data.subject.replace(/[\r\n]+/g, ' ').slice(0, 200),
-    body: data.body + '\n\nReview sheet: ' + sheetUrl,
+    body: body,
     name: 'Philanthropel forms',
   });
   return { ok: true };

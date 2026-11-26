@@ -68,12 +68,34 @@ describe('LinkedIn in the Fellowship alert', () => {
 })
 
 describe('intakeAlert', () => {
+  const answers = {
+    q1_intro: 'I run a small foundation.',
+    q6_confidence: 3,
+    q7_energy: ['Meetings', 'Email'],
+    q12_wildcard: '  ',
+  }
+
   it('names the respondent and their cohort', () => {
-    const alert = intakeAlert({ id: 'abc', name: 'Sam Lee', email: 'sam@example.org', cohort: 'Explorer' })
+    const alert = intakeAlert({ id: 'abc', name: 'Sam Lee', email: 'sam@example.org', cohort: 'Explorer', answers })
     expect(alert.subject).toBe('New Catalyst intake: Sam Lee')
     expect(alert.body).toContain('sam@example.org')
     expect(alert.body).toContain('Explorer')
     expect(alert.body).toContain('abc')
+  })
+
+  it('lists every question with the answer given, in form order', () => {
+    const alert = intakeAlert({ id: 'abc', name: 'Sam Lee', email: 'sam@example.org', cohort: null, answers })
+    expect(alert.body).toContain('1. What do you do?\nI run a small foundation.')
+    expect(alert.body).toContain('(1 to 5)\n3')
+    expect(alert.body).toContain('Where does most of your energy go each week?\nMeetings, Email')
+    expect(alert.body).toContain("probably won't capture?\n(no answer)")
+    expect(alert.body.indexOf('1. What do you do?')).toBeLessThan(alert.body.indexOf('12. '))
+  })
+
+  it('does not ask for the Fellowship review sheet link', () => {
+    const alert = intakeAlert({ id: 'abc', name: 'Sam', email: 's@example.org', cohort: null, answers })
+    expect(alert.reviewSheet).toBeFalsy()
+    expect(fellowshipAlert(validApplication(), meta).reviewSheet).toBe(true)
   })
 })
 
@@ -83,6 +105,12 @@ describe('sendAlert', () => {
     await sendAlert(config, { subject: 'S', body: 'B' })
     const sent = JSON.parse(fetchFn.mock.calls[0][1].body)
     expect(sent).toEqual({ secret: 's3cret', action: 'notify', subject: 'S', body: 'B' })
+  })
+
+  it('asks the script for the review sheet link only when the alert wants it', async () => {
+    const fetchFn = mockFetch(Response.json({ ok: true }))
+    await sendAlert(config, { subject: 'S', body: 'B', reviewSheet: true })
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).reviewSheet).toBe('yes')
   })
 
   it('throws when the script refuses', async () => {
